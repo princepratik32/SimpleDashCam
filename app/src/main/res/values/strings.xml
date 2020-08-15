@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">SimpleDashcam</string>
+    <string name="camera_facing">Camera Facing</string>
+    <string name="camera_select_banner">Select a camera from the list</string>
+    <string name="camera_face_front">FRONT</string>
+    <string name="camera_face_back">BACK</string>
+    <string name="sensor_width">Sensor Width</string>
+    <string name="sensor_height">Sensor Height</string>
+    <string name="proceed_button">Proceed to Preview</string>
+    <string name="title_activity_camera_preview">CameraPreview</string>
+    <!--
+    This string is used for square devices and overridden by hello_world in
+    values-round/strings.xml for round devices.
+    -->
+    <string name="hello_world">Hello Square World!</string>
+    <string name="start_recording">Start Recording</string>
+    <string name="stop_recording">Stop Recording</string>
+</resources>
