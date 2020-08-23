@@ -10,6 +10,7 @@ import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
+import android.media.MediaCodec;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Environment;
@@ -50,11 +51,13 @@ public class CameraPreview extends AppCompatActivity {
     private String selectedCameraId;
     private boolean recording;
     protected Button recordButton;
-    protected MediaRecorder mediaRecorder;
+    protected MediaRecorder mediaRecorder1;
+    protected Surface recoderSurface1;
 
     private final static String LOG_TYPE = "SimpleDashCamLogs";
     public static final int MEDIA_TYPE_IMAGE = 1;
     public static final int MEDIA_TYPE_VIDEO = 2;
+    public static final int MAX_VIDEO_DURATION = 3000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +73,8 @@ public class CameraPreview extends AppCompatActivity {
         selectedCameraId = startIntent.getStringExtra(StartPage.EXTRA_SELECTED_CAMERA_ID);
         recording = false;
         setContentView(R.layout.activity_camera_preview);
+        mediaRecorder1 = new MediaRecorder();
+        recoderSurface1 = MediaCodec.createPersistentInputSurface();
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) !=
                 PackageManager.PERMISSION_GRANTED) {
@@ -84,10 +89,9 @@ public class CameraPreview extends AppCompatActivity {
             Log.e(LOG_TYPE, se.getMessage());
         }
 
+        surfaceList.add(recoderSurface1);
         this.preprareRecordButton();
-        this.setupMediaRecorder();
         this.setupPreviewSurface();
-
     }
 
     protected CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
@@ -219,18 +223,15 @@ public class CameraPreview extends AppCompatActivity {
         recordButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 if (recording) {
-                    mediaRecorder.stop();
-                    recording = false;
-                    recordButton.setText(R.string.start_recording);
-
-                    reconfigureMediaRecorder();
+                    mediaRecorder1.stop();
+                    reconfigureMediaRecorder(mediaRecorder1);
                 } else {
                     recordButton.setText(R.string.stop_recording);
                     recording = true;
                     CaptureRequest.Builder recordCaptureRequestBuilder = null;
                     try {
                         recordCaptureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
-                        recordCaptureRequestBuilder.addTarget(mediaRecorder.getSurface());
+                        recordCaptureRequestBuilder.addTarget(recoderSurface1);
                         recordCaptureRequestBuilder.addTarget(previewSurfaceHolder.getSurface());
                     } catch (Exception e) {
                         Log.e(LOG_TYPE, e.getMessage());
@@ -246,24 +247,44 @@ public class CameraPreview extends AppCompatActivity {
                         }
                     });
 
-                    mediaRecorder.start();
+                    mediaRecorder1.start();
                 }
             }
         });
     }
 
-    private void setupMediaRecorder() {
-        mediaRecorder = new MediaRecorder();
+    private void setupMediaRecorder(MediaRecorder mediaRecorder) {
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         mediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
         mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-        mediaRecorder.setVideoSize(640, 480);
+        mediaRecorder.setMaxDuration(MAX_VIDEO_DURATION);
+        mediaRecorder.setVideoSize(1024, 768);
         mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
         mediaRecorder.setOutputFile(getOutputMediaFile(MEDIA_TYPE_VIDEO));
+        mediaRecorder.setOnInfoListener(new MediaRecorder.OnInfoListener() {
+            @Override
+            public void onInfo(MediaRecorder mediaRecorder, int i, int i1) {
+                if (i == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
+                    Log.d(LOG_TYPE, "MediaRecoder max duration reached.");
+                    mediaRecorder.reset();
+                    reconfigureMediaRecorder(mediaRecorder);
+                }
+            }
+        });
+
+        try {
+            mediaRecorder.setPreviewDisplay(previewSurfaceHolder.getSurface());
+            mediaRecorder.setInputSurface(recoderSurface1);
+            mediaRecorder.prepare();
+        } catch (IOException ioe) {
+            Log.e(LOG_TYPE, ioe.getMessage());
+        } catch (Exception e) {
+            Log.e(LOG_TYPE, e.getMessage());
+        }
     }
 
-    private void setupPreviewSurface() {
+    protected void setupPreviewSurface() {
         previewSurfaceView = findViewById(R.id.camera_preview);
         previewSurfaceHolder = previewSurfaceView.getHolder();
         previewSurfaceHolder.addCallback(new SurfaceHolder.Callback() {
@@ -271,6 +292,8 @@ public class CameraPreview extends AppCompatActivity {
             public void surfaceCreated(SurfaceHolder holder) {
                 Thread t = Thread.currentThread();
                 Log.d(LOG_TYPE, "Surface is created." + t.getName());
+                surfaceList.add(previewSurfaceHolder.getSurface());
+                setupMediaRecorder(mediaRecorder1);
                 createCaptureSession();
             }
 
@@ -309,36 +332,25 @@ public class CameraPreview extends AppCompatActivity {
         });
     }
 
-    private void reconfigureMediaRecorder() {
-        this.setupMediaRecorder();
-        cameraCaptureSession = null;
+    private void reconfigureMediaRecorder(MediaRecorder mediaRecorder) {
+        if (recording) {
+            recording = false;
+            recordButton.setText(R.string.start_recording);
+        }
+        this.setupMediaRecorder(mediaRecorder);
         createCaptureSession();
         startPreview();
     }
 
     private void createCaptureSession() {
-        surfaceList.clear();
-        surfaceList.add(previewSurfaceHolder.getSurface());
-
-        mediaRecorder.setPreviewDisplay(previewSurfaceHolder.getSurface());
         try {
-            mediaRecorder.prepare();
-        } catch (IOException ioe) {
-            Log.e(LOG_TYPE, ioe.getMessage());
-        }
-
-        surfaceList.add(mediaRecorder.getSurface());
-
-        try {
-            try {
-                while (cameraDevice == null) {
-                    Thread.sleep(100);
-                }
-            } catch (Exception e) {
-                Log.e(LOG_TYPE, e.getMessage());
+            while (cameraDevice == null) {
+                Thread.sleep(100);
             }
 
-            cameraDevice.createCaptureSession(surfaceList, camcapturesessionStatecallback, camHandler1);
+            if (cameraCaptureSession == null) {
+                cameraDevice.createCaptureSession(surfaceList, camcapturesessionStatecallback, camHandler1);
+            }
         } catch (Exception e) {
             Log.e(LOG_TYPE, e.getMessage());
         }
