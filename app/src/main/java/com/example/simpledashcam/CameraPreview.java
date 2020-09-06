@@ -16,14 +16,13 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.os.Looper;
-import android.os.MessageQueue;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -69,8 +68,8 @@ public class CameraPreview extends AppCompatActivity {
     private final static String LOG_TYPE = "SimpleDashCamLogs";
     public static final int MEDIA_TYPE_IMAGE = 1;
     public static final int MEDIA_TYPE_VIDEO = 2;
-    public static final int MAX_VIDEO_DURATION = 5000;
-    public static final int VIDEO_SWITCH_GAP = 1000;
+    public static final int MAX_VIDEO_DURATION = 60000;
+    public static final int VIDEO_SWITCH_GAP = 10000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,9 +122,9 @@ public class CameraPreview extends AppCompatActivity {
         surfaceList.add(recoderSurface1);
         surfaceList.add(recoderSurface2);
         this.preprareRecordButton();
+        setupPreviewSurface();
         mr1done = true;
         mr2done = true;
-        setupPreviewSurface();
     }
 
     protected CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
@@ -271,23 +270,31 @@ public class CameraPreview extends AppCompatActivity {
                                 if (currentRecorder) {
                                     try {
                                         while (!mr1done) {
-                                            Thread.sleep(1000);
+                                            Thread.sleep(100);
                                         }
+
+                                        mediaRecorder1.start();
+                                        mr1done = false;
+                                    } catch (IllegalStateException ise) {
+                                        mediaRecorder1.reset();
+                                        reconfigureMediaRecorder(mediaRecorder1, recoderSurface1);
                                     } catch (Exception e) {
                                         Log.e(LOG_TYPE, e.getMessage());
                                     }
-                                    mediaRecorder1.start();
-                                    mr1done = false;
                                 } else {
                                     try {
                                         while (!mr2done) {
-                                            Thread.sleep(1000);
+                                            Thread.sleep(100);
                                         }
+
+                                        mediaRecorder2.start();
+                                        mr2done = false;
+                                    } catch (IllegalStateException ise) {
+                                        mediaRecorder2.reset();
+                                        reconfigureMediaRecorder(mediaRecorder2, recoderSurface2);
                                     } catch (Exception e) {
                                         Log.e(LOG_TYPE, e.getMessage());
                                     }
-                                    mediaRecorder2.start();
-                                    mr2done = false;
                                 }
 
                                 try {
@@ -310,10 +317,11 @@ public class CameraPreview extends AppCompatActivity {
         mediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
         mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
         mediaRecorder.setMaxDuration(MAX_VIDEO_DURATION);
-        mediaRecorder.setVideoSize(1024, 768);
+        mediaRecorder.setVideoSize(1920, 1080);
         mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
         mediaRecorder.setOutputFile(getOutputMediaFile(MEDIA_TYPE_VIDEO));
+        mediaRecorder.setOrientationHint(90);
         mediaRecorder.setOnInfoListener(new MediaRecorder.OnInfoListener() {
             @Override
             public void onInfo(MediaRecorder mediaRecorder, int i, int i1) {
@@ -321,12 +329,22 @@ public class CameraPreview extends AppCompatActivity {
                     Log.d(LOG_TYPE, "MediaRecoder max duration reached.");
                     mediaRecorder.reset();
                     reconfigureMediaRecorder(mediaRecorder, recoderSurface);
-
                     if (mediaRecorder == mediaRecorder1) {
                         mr1done = true;
                     } else {
                         mr2done = true;
                     }
+                }
+            }
+        });
+
+        mediaRecorder.setOnErrorListener(new MediaRecorder.OnErrorListener() {
+            @Override
+            public void onError(MediaRecorder mediaRecorder, int i, int i1) {
+                if (i == MediaRecorder.MEDIA_RECORDER_ERROR_UNKNOWN) {
+                    Log.e(LOG_TYPE, "Unknown error");
+                } else if (i == MediaRecorder.MEDIA_ERROR_SERVER_DIED) {
+                    Log.e(LOG_TYPE, "Server Died");
                 }
             }
         });
@@ -373,6 +391,8 @@ public class CameraPreview extends AppCompatActivity {
         try {
             captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             captureRequestBuilder.addTarget(previewSurfaceHolder.getSurface());
+            captureRequestBuilder.addTarget(recoderSurface1);
+            captureRequestBuilder.addTarget(recoderSurface2);
         } catch (Exception e) {
             Log.e(LOG_TYPE, e.getMessage());
         }
@@ -421,6 +441,9 @@ public class CameraPreview extends AppCompatActivity {
         try {
             mediaRecorder2.stop();
         } catch (Exception e) {}
+
+        mediaRecorder1.reset();
+        mediaRecorder2.reset();
 
         mr1done = true;
         mr2done = true;
