@@ -4,7 +4,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -22,6 +22,16 @@
             android:name="com.google.android.wearable.standalone"
             android:value="true" />
 
+        <activity android:name=".FlickrLogin" android:label="@string/title_activity_flickr_login">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="flickrredir"
+                    android:scheme="simpledashcam" />
+            </intent-filter>
+        </activity>
         <activity
             android:name=".CameraPreview"
             android:label="@string/title_activity_camera_preview"/>
