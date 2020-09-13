@@ -8,15 +8,15 @@
     <string name="sensor_height">Sensor Height</string>
     <string name="proceed_button">Proceed to Preview</string>
     <string name="login_to_flickr">Login to Flickr</string>
+    <string name="logout_of_flickr">Logout of Flickr</string>
+    <string name="flickr_login_loading">Loading Flickr Login Info</string>
     <string name="title_activity_camera_preview">CameraPreview</string>
+    <string name="you_are_logged_in_as">You are logged in as Flickr user:</string>
     <string name="preference_file_key">simpledashcamapp.prefs</string>
     <string name="preference_temp_token_secret">temp_token_secret</string>
-    <!--
-    This string is used for square devices and overridden by hello_world in
-    values-round/strings.xml for round devices.
-    -->
-    <string name="hello_world">Hello Square World!</string>
     <string name="start_recording">Start Recording</string>
     <string name="stop_recording">Stop Recording</string>
     <string name="title_activity_flickr_login">FlickrLogin</string>
+    <string name="processing_login">Processing your login</string>
+    <string name="successful_login_message">You\'ve successfully logged in, please go back to start page.</string>
 </resources>

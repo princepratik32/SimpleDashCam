@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Rect;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
@@ -41,9 +42,13 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
     protected String selectedCamera;
     protected CameraManager cameraManager;
     protected CameraCharacteristics cameraCharacteristics;
-    protected boolean loginButtonVisible;
+    protected boolean userIsLoggedIn;
     protected SharedPreferences sharedPreferences;
+    protected HandlerThread threadB;
+    protected Handler threadBHandler;
+    protected TextView loginInfo;
     private String[] cameraIdList;
+    protected Button flickrLoginButton;
     public final String LOG_TYPE = "SimpleDashCamLog";
     static final String LOG_TYPE_FLICKR = "Flickr";
     static final String EXTRA_SELECTED_CAMERA_ID = "com.example.previewCameraId";
@@ -51,11 +56,17 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
     static final String FLICKR_API_KEY = "";
     static final String FLICKR_API_SECRET= "";
     static final String FLICKR_REQUEST_TOKEN_URL = "https://www.flickr.com/services/oauth/request_token";
+    static final String FLICKR_REST_ENDPOINT = "https://www.flickr.com/services/rest/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(activity_start_page);
+        loginInfo = findViewById(R.id.flickr_login_info);
+        loginInfo.setText(R.string.flickr_login_loading);
+        threadB = new HandlerThread("sideB");
+        threadB.start();
+        threadBHandler = new Handler(threadB.getLooper());
         sharedPreferences = getApplicationContext().getSharedPreferences(getString(R.string.preference_file_key), Context.MODE_PRIVATE);
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) !=
@@ -64,13 +75,25 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
                     1);
         }
 
-        loginButtonVisible = true;
+        userIsLoggedIn = false;
+
+        flickrLoginButton = findViewById(R.id.flickr_login);
+        flickrLoginButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (userIsLoggedIn) {
+                    logoutOfFlickr();
+                } else {
+                    launchAuthFlow();
+                }
+            }
+        });
     }
 
     public void setCamera(String cameraId) {
         selectedCamera = cameraId;
         try {
-            TextView cameraFacingValue = (TextView)findViewById(R.id.camera_face_value);
+            TextView cameraFacingValue = findViewById(R.id.camera_face_value);
             cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId);
             switch (cameraCharacteristics.get(CameraCharacteristics.LENS_FACING)) {
                 case CameraMetadata.LENS_FACING_BACK:
@@ -82,8 +105,8 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
             }
 
             Rect sensorInfo = cameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-            TextView sensorHeight = (TextView)findViewById(R.id.sensor_height_value);
-            TextView sensorWidth = (TextView)findViewById(R.id.sensor_width_value);
+            TextView sensorHeight = findViewById(R.id.sensor_height_value);
+            TextView sensorWidth = findViewById(R.id.sensor_width_value);
 
             sensorHeight.setText(String.valueOf(sensorInfo.height()));
             sensorWidth.setText(String.valueOf(sensorInfo.width()));
@@ -96,7 +119,7 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
     public void onResume() {
         super.onResume();
         cameraManager = (CameraManager)getSystemService(CAMERA_SERVICE);
-        Spinner spinner = (Spinner) findViewById(R.id.camera_list);
+        Spinner spinner = findViewById(R.id.camera_list);
         ArrayList<String> cameraList = new ArrayList<>();
 
         try {
@@ -128,18 +151,9 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
             }
         });
 
-        final Button flickrLoginButton = (Button)findViewById(R.id.flickr_login);
-        flickrLoginButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                launchAuthFlow();
-            }
-        });
-        if (loginButtonVisible) {
-            flickrLoginButton.setVisibility(View.VISIBLE);
-        } else {
-            flickrLoginButton.setVisibility(View.INVISIBLE);
-        }
+        flickrLoginButton.setVisibility(View.INVISIBLE);
+        loginInfo.setText(R.string.flickr_login_loading);
+        loadFlickrLoginInfo();
     }
 
     @Override
@@ -160,9 +174,6 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
         OAuthHmacSigner hmacSigner = new OAuthHmacSigner();
         hmacSigner.clientSharedSecret = FLICKR_API_SECRET;
         oAuthGetTemporaryToken.signer = hmacSigner;
-        HandlerThread threadB = new HandlerThread("sideB");
-        threadB.start();
-        Handler threadBHandler = new Handler(threadB.getLooper());
 
         threadBHandler.post(new Runnable() {
             @Override
@@ -186,5 +197,50 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
                 }
             }
         });
+    }
+
+    protected void loadFlickrLoginInfo() {
+        threadBHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                String url = FlickrLoginProvider.URL;
+                Uri flickrLogin = Uri.parse(url);
+                Cursor c = getContentResolver().query(
+                        flickrLogin,
+                        null,
+                        null,
+                        null
+                );
+
+                if (c.getCount() > 0) {
+                    if (c.moveToFirst()) {
+                        String username = c.getString(c.getColumnIndex(FlickrLoginProvider.USERNAME));
+                        String nsid = c.getString(c.getColumnIndex(FlickrLoginProvider.NSID));
+                        username = (username.isEmpty()) ? nsid : username;
+                        loginInfo.setText(getText(R.string.you_are_logged_in_as) + " " + username);
+                    }
+
+                    flickrLoginButton.setText(R.string.logout_of_flickr);
+                    flickrLoginButton.setVisibility(View.VISIBLE);
+                    userIsLoggedIn = true;
+                } else {
+                    flickrLoginButton.setText(R.string.login_to_flickr);
+                    flickrLoginButton.setVisibility(View.VISIBLE);
+                    loginInfo.setText(null);
+                    userIsLoggedIn = false;
+                }
+            }
+        });
+    }
+
+    protected void logoutOfFlickr() {
+        String url = FlickrLoginProvider.URL;
+        Uri flickrLogin = Uri.parse(url);
+        int count = getContentResolver().delete(flickrLogin, null, null);
+        flickrLoginButton.setText(R.string.login_to_flickr);
+        flickrLoginButton.setVisibility(View.VISIBLE);
+        loginInfo.setText(null);
+        userIsLoggedIn = false;
+        Log.d(LOG_TYPE_FLICKR, "Logged out of Flickr: " + count);
     }
 }

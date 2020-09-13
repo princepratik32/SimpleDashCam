@@ -144,8 +144,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView7"
-        app:layout_constraintVertical_bias="0.29000002" />
+        app:layout_constraintTop_toBottomOf="@+id/sensor_height_value"
+        app:layout_constraintVertical_bias="0.7" />
 
     <Button
         android:id="@+id/flickr_login"
@@ -157,6 +157,18 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView7"
-        app:layout_constraintVertical_bias="0.6" />
+        app:layout_constraintVertical_bias="0.38" />
+
+    <TextView
+        android:id="@+id/flickr_login_info"
+        android:layout_width="309dp"
+        android:layout_height="68dp"
+        android:textAlignment="center"
+        android:textSize="18sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/sensor_height_value"
+        app:layout_constraintVertical_bias="0.07999998" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
