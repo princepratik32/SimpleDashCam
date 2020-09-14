@@ -1,6 +1,7 @@
 package com.example.simpledashcam;
 
 import android.Manifest;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.camera2.CameraCaptureSession;
@@ -25,13 +26,6 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-
-import com.github.hiteshsondhi88.libffmpeg.ExecuteBinaryResponseHandler;
-import com.github.hiteshsondhi88.libffmpeg.FFmpeg;
-import com.github.hiteshsondhi88.libffmpeg.LoadBinaryResponseHandler;
-import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegCommandAlreadyRunningException;
-import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegNotSupportedException;
-
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -57,12 +51,12 @@ public class CameraPreview extends AppCompatActivity {
     private boolean recording;
     protected Button recordButton;
     protected MediaRecorder mediaRecorder;
-    protected FFmpeg ffmpeg;
     private File outputFile;
 
     private final static String LOG_TYPE = "SimpleDashCamLogs";
     public static final int MEDIA_TYPE_IMAGE = 1;
     public static final int MEDIA_TYPE_VIDEO = 2;
+    static final String PREPARE_FILE_URI = "com.example.PrepareFileService.URI";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,28 +89,6 @@ public class CameraPreview extends AppCompatActivity {
         this.preprareRecordButton();
         this.setupMediaRecorder();
         this.setupPreviewSurface();
-        ffmpeg = FFmpeg.getInstance(this);
-
-        try {
-            ffmpeg.loadBinary(new LoadBinaryResponseHandler() {
-
-                @Override
-                public void onStart() {}
-
-                @Override
-                public void onFailure() {}
-
-                @Override
-                public void onSuccess() {}
-
-                @Override
-                public void onFinish() {}
-            });
-        } catch (FFmpegNotSupportedException e) {
-            // Handle if FFmpeg is not supported by device
-        }
-
-
     }
 
     protected CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
@@ -251,34 +223,13 @@ public class CameraPreview extends AppCompatActivity {
                     mediaRecorder.stop();
                     recording = false;
                     recordButton.setText(R.string.start_recording);
-
-                    String[] cmd = {"-i", outputFile.getPath(), "-map", "0", "-segment_time", "3", "-preset", "fast", "-f", "segment", outputFile.getParent() + "/" + "output%03d.mp4"};
-                    try {
-                        ffmpeg.execute(cmd, new ExecuteBinaryResponseHandler() {
-
-                            @Override
-                            public void onStart() {}
-
-                            @Override
-                            public void onProgress(String message) {}
-
-                            @Override
-                            public void onFailure(String message) {
-                                Log.d(LOG_TYPE, "FFMPEG bad: " + message);
-                            }
-
-                            @Override
-                            public void onSuccess(String message) {
-                                Log.d(LOG_TYPE, "FFMPEG good: " + message);
-                            }
-
-                            @Override
-                            public void onFinish() {}
-                        });
-                    } catch (FFmpegCommandAlreadyRunningException e) {
-                        // Handle if FFmpeg is already running
-                    }
-
+                    Intent preprareFileServiceIntent = new Intent();
+                    preprareFileServiceIntent.setComponent(new ComponentName(
+                            "com.example.simpledashcam",
+                            "com.example.simpledashcam.PrepareFileService"));
+                    preprareFileServiceIntent.putExtra(PREPARE_FILE_URI, outputFile.getPath());
+                    startService(preprareFileServiceIntent);
+                    Log.d(LOG_TYPE, "Service sent file: " + outputFile.getPath());
 
                     reconfigureMediaRecorder();
 

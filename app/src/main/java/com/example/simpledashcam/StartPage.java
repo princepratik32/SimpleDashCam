@@ -49,7 +49,7 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
     protected TextView loginInfo;
     private String[] cameraIdList;
     protected Button flickrLoginButton;
-    public final String LOG_TYPE = "SimpleDashCamLog";
+    static final String LOG_TYPE = "SimpleDashCamLog";
     static final String LOG_TYPE_FLICKR = "Flickr";
     static final String EXTRA_SELECTED_CAMERA_ID = "com.example.previewCameraId";
 
