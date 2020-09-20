@@ -1,6 +1,7 @@
 package com.example.simpledashcam;
 
 import android.app.Service;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -28,6 +29,7 @@ public class PrepareFileService extends Service {
     static final String LOG_TYPE = "PrepareFileService";
     static final String CHUNK_LENGTH = "60";
     static final long MIN_FILE_SIZE = 10_000_000;
+    static final String UPLOAD_FILE_URI = "com.example.UploadFileService.URI";
 
     // Handler that receives messages from the thread
     private final class ServiceHandler extends Handler {
@@ -37,7 +39,7 @@ public class PrepareFileService extends Service {
         @Override
         public void handleMessage(final Message msg) {
             final File fileToProcess = (File)msg.obj;
-            Log.d(LOG_TYPE, "Service received file: " + fileToProcess.getPath() + " size: " + fileToProcess.length());
+            Log.i(LOG_TYPE, "Service received file: " + fileToProcess.getPath() + " size: " + fileToProcess.length());
 
             File temporaryDir = null;
             File outFile = null;
@@ -101,32 +103,32 @@ public class PrepareFileService extends Service {
 
                     @Override
                     public void onFailure(String message) {
-                        Log.d(LOG_TYPE, "FFMPEG failed: " + message);
+                        Log.e(LOG_TYPE, "FFMPEG failed: " + message);
                         stopSelf(msg.arg1);
                     }
 
                     @Override
                     public void onSuccess(String message) {
-                        Log.d(LOG_TYPE, "FFMPEG successful: " + message);
+                        Log.i(LOG_TYPE, "FFMPEG successful: " + message);
                     }
 
                     @Override
                     public void onFinish() {
-                        Log.d(LOG_TYPE, "FFMPEG Finished. Message: " + msg.arg1);
+                        Log.i(LOG_TYPE, "FFMPEG Finished. Message: " + msg.arg1);
 
                         queueFilesForUpload(finalTemporaryDir.listFiles());
                         boolean deleted = fileToProcess.delete();
                         if (deleted) {
-                            Log.d(LOG_TYPE, "Deleted file: " + fileToProcess.getPath());
+                            Log.i(LOG_TYPE, "Deleted file: " + fileToProcess.getPath());
                         } else {
-                            Log.d(LOG_TYPE, "Failed to delete file: " + fileToProcess.getPath());
+                            Log.e(LOG_TYPE, "Failed to delete file: " + fileToProcess.getPath());
                         }
                         stopSelf(msg.arg1);
                     }
                 });
             } catch (FFmpegCommandAlreadyRunningException e) {
                 // Handle if FFmpeg is already running
-                Log.d(LOG_TYPE, "FFMPEG already running: " + e.getMessage());
+                Log.e(LOG_TYPE, "FFMPEG already running: " + e.getMessage());
                 stopSelf(msg.arg1);
             }
 
@@ -217,7 +219,12 @@ public class PrepareFileService extends Service {
     protected void queueFilesForUpload(File[] files) {
         if (null != files) {
             for (File f: files) {
-                //TODO Send intents to upload service
+                Intent uploadFileServiceIntent = new Intent();
+                uploadFileServiceIntent.setComponent(new ComponentName(
+                        "com.example.simpledashcam",
+                        "com.example.simpledashcam.UploadFileService"));
+                uploadFileServiceIntent.putExtra(PrepareFileService.UPLOAD_FILE_URI, f.getAbsolutePath());
+                startService(uploadFileServiceIntent);
                 Log.i(LOG_TYPE, "Queuing file for upload: " + f.getPath() + " size: " + f.length());
             }
         }

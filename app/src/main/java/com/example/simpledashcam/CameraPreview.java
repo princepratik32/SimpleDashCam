@@ -95,13 +95,13 @@ public class CameraPreview extends AppCompatActivity {
         @Override
         public void onOpened(@NonNull CameraDevice camera) {
             cameraDevice = camera;
-            Log.d(LOG_TYPE, "Camera is open");
+            Log.i(LOG_TYPE, "Camera is open");
         }
 
         @Override
         public void onDisconnected(@NonNull CameraDevice camera) {
             cameraDevice.close();
-            Log.d(LOG_TYPE, "Camera is Disconnected");
+            Log.i(LOG_TYPE, "Camera is Disconnected");
         }
 
         @Override
@@ -114,19 +114,19 @@ public class CameraPreview extends AppCompatActivity {
         @Override
         public void onConfigured(@NonNull CameraCaptureSession session) {
             cameraCaptureSession = session;
-            Log.d(LOG_TYPE, "CameraCaptureSession created");
+            Log.i(LOG_TYPE, "CameraCaptureSession created");
         }
 
         @Override
         public void onConfigureFailed(@NonNull CameraCaptureSession session) {
             cameraCaptureSession = null;
-            Log.d(LOG_TYPE, "CameraCaptureSession failed");
+            Log.i(LOG_TYPE, "CameraCaptureSession failed");
         }
 
         @Override
         public void onClosed(@NonNull CameraCaptureSession session) {
             super.onClosed(session);
-            Log.d(LOG_TYPE, "CameraCaptureSession closed");
+            Log.i(LOG_TYPE, "CameraCaptureSession closed");
         }
     };
 
@@ -134,43 +134,43 @@ public class CameraPreview extends AppCompatActivity {
         @Override
         public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
             super.onCaptureStarted(session, request, timestamp, frameNumber);
-            Log.d(LOG_TYPE, "Capture started");
+            Log.i(LOG_TYPE, "Capture started");
         }
 
         @Override
         public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
             super.onCaptureProgressed(session, request, partialResult);
-            Log.d(LOG_TYPE, "Capture Progressed");
+            Log.i(LOG_TYPE, "Capture Progressed");
         }
 
         @Override
         public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
             super.onCaptureCompleted(session, request, result);
-            Log.d(LOG_TYPE, "Capture Completed");
+            Log.i(LOG_TYPE, "Capture Completed");
         }
 
         @Override
         public void onCaptureFailed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureFailure failure) {
             super.onCaptureFailed(session, request, failure);
-            Log.d(LOG_TYPE, "Capture Failed");
+            Log.i(LOG_TYPE, "Capture Failed");
         }
 
         @Override
         public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
             super.onCaptureSequenceCompleted(session, sequenceId, frameNumber);
-            Log.d(LOG_TYPE, "Capture Sequence Completed");
+            Log.i(LOG_TYPE, "Capture Sequence Completed");
         }
 
         @Override
         public void onCaptureSequenceAborted(@NonNull CameraCaptureSession session, int sequenceId) {
             super.onCaptureSequenceAborted(session, sequenceId);
-            Log.d(LOG_TYPE, "Capture Sequence Aborted");
+            Log.i(LOG_TYPE, "Capture Sequence Aborted");
         }
 
         @Override
         public void onCaptureBufferLost(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull Surface target, long frameNumber) {
             super.onCaptureBufferLost(session, request, target, frameNumber);
-            Log.d(LOG_TYPE, "Capture buffer lost");
+            Log.i(LOG_TYPE, "Capture buffer lost");
         }
     };
 
@@ -193,7 +193,7 @@ public class CameraPreview extends AppCompatActivity {
         // Create the storage directory if it does not exist
         if (!mediaStorageDir.exists()){
             if (!mediaStorageDir.mkdirs()){
-                Log.d(LOG_TYPE, "failed to create directory");
+                Log.i(LOG_TYPE, "failed to create directory");
                 return null;
             }
         }
@@ -229,7 +229,7 @@ public class CameraPreview extends AppCompatActivity {
                             "com.example.simpledashcam.PrepareFileService"));
                     preprareFileServiceIntent.putExtra(PREPARE_FILE_URI, outputFile.getPath());
                     startService(preprareFileServiceIntent);
-                    Log.d(LOG_TYPE, "Service sent file: " + outputFile.getPath());
+                    Log.i(LOG_TYPE, "Service sent file: " + outputFile.getPath());
 
                     reconfigureMediaRecorder();
 
@@ -261,6 +261,16 @@ public class CameraPreview extends AppCompatActivity {
         });
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        if (!recording && (outputFile.length() == 0)) {
+            Log.i(LOG_TYPE, "Deleting empty file:" + outputFile.getPath());
+            outputFile.delete();
+        }
+    }
+
     private void setupMediaRecorder() {
         mediaRecorder = new MediaRecorder();
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
@@ -281,18 +291,18 @@ public class CameraPreview extends AppCompatActivity {
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
                 Thread t = Thread.currentThread();
-                Log.d(LOG_TYPE, "Surface is created." + t.getName());
+                Log.i(LOG_TYPE, "Surface is created." + t.getName());
                 createCaptureSession();
             }
 
             @Override
             public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-                Log.d(LOG_TYPE, "Surface has changed.");
+                Log.i(LOG_TYPE, "Surface has changed.");
             }
 
             @Override
             public void surfaceDestroyed(SurfaceHolder holder) {
-                Log.d(LOG_TYPE, "Surface is destroyed.");
+                Log.i(LOG_TYPE, "Surface is destroyed.");
             }
         });
     }

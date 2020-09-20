@@ -37,7 +37,7 @@ public class FlickrLogin extends AppCompatActivity {
         textView.setText(R.string.processing_login);
 
         Intent startIntent = getIntent();
-        Log.d(StartPage.LOG_TYPE_FLICKR, startIntent.getData().toString());
+        Log.i(StartPage.LOG_TYPE_FLICKR, startIntent.getData().toString());
         preferences = getApplicationContext().getSharedPreferences(getString(R.string.preference_file_key), Context.MODE_PRIVATE);
 
         final OAuthGetAccessToken oAuthGetAccessToken = new OAuthGetAccessToken("https://www.flickr.com/services/oauth/access_token");
@@ -50,20 +50,20 @@ public class FlickrLogin extends AppCompatActivity {
         hmacSigner.tokenSharedSecret = preferences.getString(getString(R.string.preference_temp_token_secret), null);
         oAuthGetAccessToken.signer = hmacSigner;
 
-        Log.d(StartPage.LOG_TYPE_FLICKR, startIntent.getData().toString());
+        Log.i(StartPage.LOG_TYPE_FLICKR, startIntent.getData().toString());
 
         HandlerThread threadB = new HandlerThread("sideB");
         threadB.start();
         Handler threadBHandler = new Handler(threadB.getLooper());
 
-        Log.d(StartPage.LOG_TYPE_FLICKR, "Flickr external URL: " + oAuthGetAccessToken.toURL().toExternalForm());
+        Log.i(StartPage.LOG_TYPE_FLICKR, "Flickr external URL: " + oAuthGetAccessToken.toURL().toExternalForm());
 
         threadBHandler.post(new Runnable() {
             @Override
             public void run() {
                 try {
                     OAuthCredentialsResponse response = oAuthGetAccessToken.execute();
-                    Log.d(StartPage.LOG_TYPE_FLICKR, "Flickr final access token: " + response.token);
+                    Log.i(StartPage.LOG_TYPE_FLICKR, "Flickr final access token: " + response.token);
 
                     FlickrUser user = loginToFlickr(StartPage.FLICKR_API_KEY,
                             StartPage.FLICKR_API_SECRET,
@@ -84,7 +84,7 @@ public class FlickrLogin extends AppCompatActivity {
                     Thread.sleep(2000);
                     finish();
                 } catch (Exception e) {
-                    Log.d(StartPage.LOG_TYPE_FLICKR, "Failed get Flickr final access token: " + e.toString());
+                    Log.i(StartPage.LOG_TYPE_FLICKR, "Failed get Flickr final access token: " + e.toString());
                 }
             }
         });
@@ -108,7 +108,7 @@ public class FlickrLogin extends AppCompatActivity {
         cv.put(FlickrLoginProvider.USERNAME, username);
 
         Uri result = getContentResolver().insert(flickrLogin, cv);
-        Log.d(StartPage.LOG_TYPE_FLICKR, "Stored Flickr login: " + result.toString());
+        Log.i(StartPage.LOG_TYPE_FLICKR, "Stored Flickr login: " + result.toString());
     }
 
     private FlickrUser loginToFlickr(String apiKey,
@@ -135,7 +135,7 @@ public class FlickrLogin extends AppCompatActivity {
                     .set("nojsoncallback", 1)
                     .set("method", "flickr.test.login");
             HttpRequest request = requestFactory.buildGetRequest(genericUrl);
-            Log.d(StartPage.LOG_TYPE_FLICKR, "HTTP Request: " + request.getHeaders().toString());
+            Log.i(StartPage.LOG_TYPE_FLICKR, "HTTP Request: " + request.getHeaders().toString());
 
             HttpResponse response = request.execute();
             String textResponse = null;
@@ -157,12 +157,12 @@ public class FlickrLogin extends AppCompatActivity {
                     }
                 }
             }
-            Log.d(StartPage.LOG_TYPE_FLICKR, "Login response: " + textResponse);
+            Log.i(StartPage.LOG_TYPE_FLICKR, "Login response: " + textResponse);
         } catch (Exception e) {
-            Log.d(StartPage.LOG_TYPE_FLICKR, "Failed log into Flickr: " + e.toString());
+            Log.e(StartPage.LOG_TYPE_FLICKR, "Failed log into Flickr: " + e.toString());
         }
 
-        Log.d(StartPage.LOG_TYPE_FLICKR, "User: " + user.getNsid());
+        Log.i(StartPage.LOG_TYPE_FLICKR, "User: " + user.getNsid());
         return user;
     }
 }

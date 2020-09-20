@@ -57,6 +57,7 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
     static final String FLICKR_API_SECRET= "";
     static final String FLICKR_REQUEST_TOKEN_URL = "https://www.flickr.com/services/oauth/request_token";
     static final String FLICKR_REST_ENDPOINT = "https://www.flickr.com/services/rest/";
+    static final String FLICKR_UPLOAD_ENDPOINT = "https://up.flickr.com/services/upload/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,11 +129,11 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
                 cameraList.add("Camera " + cameraId);
             }
         } catch (CameraAccessException cae) {
-            Log.d(LOG_TYPE, "Failed get list of cameras: " + cae.getMessage());
+            Log.e(LOG_TYPE, "Failed get list of cameras: " + cae.getMessage());
             return;
         }
 
-        ArrayAdapter<String> cameraListAdapter = new ArrayAdapter<String>(this,
+        ArrayAdapter<String> cameraListAdapter = new ArrayAdapter<>(this,
                 R.layout.camera_name,
                 cameraList);
         cameraListAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -159,7 +160,7 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
         setCamera(cameraIdList[(int)id]);
-        Log.d(LOG_TYPE, "onItemSelected called for id: " + id);
+        Log.i(LOG_TYPE, "onItemSelected called for id: " + id);
     }
 
     @Override
@@ -180,8 +181,8 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
             public void run() {
                 try {
                     OAuthCredentialsResponse response = oAuthGetTemporaryToken.execute();
-                    Log.d(LOG_TYPE_FLICKR, "Flickr temp token: " + response.token);
-                    Log.d(LOG_TYPE_FLICKR, "Flickr temp token secret: " + response.tokenSecret);
+                    Log.i(LOG_TYPE_FLICKR, "Flickr temp token: " + response.token);
+                    Log.i(LOG_TYPE_FLICKR, "Flickr temp token secret: " + response.tokenSecret);
 
                     SharedPreferences.Editor editor = sharedPreferences.edit();
                     editor.putString(getString(R.string.preference_temp_token_secret), response.tokenSecret);
@@ -193,7 +194,7 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
                     CustomTabsIntent customTabsIntent = tabsIntentBuilder.build();
                     customTabsIntent.launchUrl(getApplicationContext(), Uri.parse(url));
                 } catch (Exception e) {
-                    Log.d(LOG_TYPE_FLICKR, "Failed get Flickr temp token: " + e.toString());
+                    Log.e(LOG_TYPE_FLICKR, "Failed get Flickr temp token: " + e.toString());
                 }
             }
         });
@@ -229,6 +230,8 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
                     loginInfo.setText(null);
                     userIsLoggedIn = false;
                 }
+
+                c.close();
             }
         });
     }
@@ -241,6 +244,7 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
         flickrLoginButton.setVisibility(View.VISIBLE);
         loginInfo.setText(null);
         userIsLoggedIn = false;
-        Log.d(LOG_TYPE_FLICKR, "Logged out of Flickr: " + count);
+        Log.i(LOG_TYPE_FLICKR, "Logged out of Flickr: " + count);
     }
 }
+

@@ -18,7 +18,10 @@
             android:name=".PrepareFileService"
             android:enabled="true"
             android:exported="false" />
-
+        <service
+            android:name=".UploadFileService"
+            android:enabled="true"
+            android:exported="false" />
         <provider
             android:name=".FlickrLoginProvider"
             android:authorities="com.example.simpledashcam.provider"
