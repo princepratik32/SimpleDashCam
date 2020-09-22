@@ -70,12 +70,14 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
         threadBHandler = new Handler(threadB.getLooper());
         sharedPreferences = getApplicationContext().getSharedPreferences(getString(R.string.preference_file_key), Context.MODE_PRIVATE);
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) !=
-                PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.CAMERA},
-                    1);
-        }
+        String[] requestPermissions = new String[]{
+            Manifest.permission.CAMERA,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.INTERNET
+        };
 
+        ActivityCompat.requestPermissions(this, requestPermissions, 1);
         userIsLoggedIn = false;
 
         flickrLoginButton = findViewById(R.id.flickr_login);
@@ -221,13 +223,23 @@ public class StartPage extends AppCompatActivity implements AdapterView.OnItemSe
                         loginInfo.setText(getText(R.string.you_are_logged_in_as) + " " + username);
                     }
 
-                    flickrLoginButton.setText(R.string.logout_of_flickr);
-                    flickrLoginButton.setVisibility(View.VISIBLE);
                     userIsLoggedIn = true;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            flickrLoginButton.setText(R.string.logout_of_flickr);
+                            flickrLoginButton.setVisibility(View.VISIBLE);
+                        }
+                    });
                 } else {
-                    flickrLoginButton.setText(R.string.login_to_flickr);
-                    flickrLoginButton.setVisibility(View.VISIBLE);
-                    loginInfo.setText(null);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            flickrLoginButton.setText(R.string.login_to_flickr);
+                            flickrLoginButton.setVisibility(View.VISIBLE);
+                            loginInfo.setText(null);
+                        }
+                    });
                     userIsLoggedIn = false;
                 }
 
